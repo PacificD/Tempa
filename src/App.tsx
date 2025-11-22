@@ -1,9 +1,12 @@
 import { useState, useMemo } from 'react';
 import { StockInput } from './components/StockInput';
-import { PortfolioChart } from './components/PortfolioChart';
 import { PortfolioSummary } from './components/PortfolioSummary';
 import { CurrencySwitcher } from './components/CurrencySwitcher';
+import { AIInsights } from './components/AIInsights';
 import type { Stock, PortfolioItem, Currency } from './types';
+
+
+import PieChart from './components/PieChart';
 
 // Mock exchange rates relative to USD
 const EXCHANGE_RATES: Record<Currency, number> = {
@@ -47,6 +50,7 @@ function App() {
   const [stocks, setStocks] = useState<Stock[]>([]);
   const [currency, setCurrency] = useState<Currency>('USD');
 
+
   const handleAddStock = (symbol: string, amount: number) => {
     // Mock price fetching
     const basePriceUSD = MOCK_PRICES[symbol] || (Math.random() * 200 + 50); // Fallback random price
@@ -69,6 +73,7 @@ function App() {
   const handleCurrencyChange = (newCurrency: Currency) => {
     setCurrency(newCurrency);
   };
+
 
   const portfolioData = useMemo(() => {
     // Calculate items first
@@ -115,12 +120,8 @@ function App() {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
 
           {/* Left Column: Chart */}
-          <div className="lg:col-span-7 bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex flex-col">
-            <h2 className="text-lg font-semibold text-slate-800 mb-6">Allocation</h2>
-            <div className="flex-1 min-h-[400px] flex items-center justify-center">
-              <PortfolioChart data={portfolioData} currency={currency} />
-            </div>
-          </div>
+          <PieChart portfolioData={portfolioData} currency={currency} />
+        
 
           {/* Right Column: Input & Summary */}
           <div className="lg:col-span-5 space-y-8">
@@ -139,6 +140,9 @@ function App() {
             />
           </div>
         </div>
+        
+        {/* AI Insights Section */}
+        <AIInsights items={portfolioData} currency={currency} />
       </div>
     </div>
   );

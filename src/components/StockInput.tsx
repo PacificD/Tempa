@@ -45,7 +45,7 @@ export function StockInput({ onAddStock, className }: StockInputProps) {
                     value={amount}
                     onChange={(e) => setAmount(e.target.value)}
                     placeholder="e.g. 10"
-                    min="0.0001"
+                    min="1"
                     step="any"
                     className="w-full px-4 py-2 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
                     required

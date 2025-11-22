@@ -19,7 +19,7 @@ export function CurrencySwitcher({ currentCurrency, onCurrencyChange, className 
                         key={currency}
                         onClick={() => onCurrencyChange(currency)}
                         className={cn(
-                            "px-3 py-1 text-sm rounded-md transition-all font-medium",
+                            "px-3 py-1 text-sm rounded-md transition-all font-medium cursor-pointer",
                             currentCurrency === currency
                                 ? "bg-white text-blue-600 shadow-sm"
                                 : "text-slate-500 hover:text-slate-700"

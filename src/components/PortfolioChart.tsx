@@ -30,7 +30,7 @@ const CustomTooltip = ({ active, payload, currency }: any) => {
 export function PortfolioChart({ data, currency }: PortfolioChartProps) {
     if (data.length === 0) {
         return (
-            <div className="h-[300px] flex items-center justify-center text-slate-400 bg-slate-50 rounded-xl border-2 border-dashed border-slate-200">
+            <div className="h-[300px] flex items-center justify-center p-4 text-slate-400 bg-slate-50 rounded-xl border-2 border-dashed border-slate-200">
                 Add stocks to see visualization
             </div>
         );
@@ -48,6 +48,8 @@ export function PortfolioChart({ data, currency }: PortfolioChartProps) {
                         outerRadius={140}
                         paddingAngle={5}
                         dataKey="value"
+                        nameKey="symbol"
+                        label={({ name, percent }: { name?: string | number; percent?: number }) => percent ? `${name} ${(percent * 100).toFixed(1)}%` : ''}
                     >
                         {data.map((entry, index) => (
                             <Cell key={`cell-${index}`} fill={entry.color} strokeWidth={0} />
