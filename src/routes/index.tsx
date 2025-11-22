@@ -1,12 +1,19 @@
-import { useState, useMemo } from 'react';
-import { StockInput } from './components/StockInput';
-import { PortfolioSummary } from './components/PortfolioSummary';
-import { CurrencySwitcher } from './components/CurrencySwitcher';
-import { AIInsights } from './components/AIInsights';
-import type { Stock, PortfolioItem, Currency } from './types';
+import { useState, useMemo, useEffect } from 'react';
+import { createRoute } from '@tanstack/react-router';
+import { StockInput } from '../components/StockInput';
+import { PortfolioSummary } from '../components/PortfolioSummary';
+import { CurrencySwitcher } from '../components/CurrencySwitcher';
+import { AIInsights } from '../components/AIInsights';
+import PieChart from '../components/PieChart';
+import { supabase } from '../lib/supabase';
+import type { Stock, PortfolioItem, Currency } from '../types';
+import { rootRoute } from './__root';
 
-
-import PieChart from './components/PieChart';
+export const indexRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/',
+  component: Index,
+});
 
 // Mock exchange rates relative to USD
 const EXCHANGE_RATES: Record<Currency, number> = {
@@ -46,39 +53,87 @@ const CHART_COLORS = [
   '#eab308', '#22c55e', '#06b6d4', '#6366f1', '#a855f7'
 ];
 
-function App() {
+function Index() {
   const [stocks, setStocks] = useState<Stock[]>([]);
   const [currency, setCurrency] = useState<Currency>('USD');
+  const [isLoading, setIsLoading] = useState(true);
 
+  useEffect(() => {
+    fetchPortfolio();
+  }, []);
 
-  const handleAddStock = (symbol: string, amount: number) => {
-    // Mock price fetching
-    const basePriceUSD = MOCK_PRICES[symbol] || (Math.random() * 200 + 50); // Fallback random price
+  const fetchPortfolio = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('portfolio_items')
+        .select('*');
+      
+      if (error) throw error;
 
-    const newStock: Stock = {
-      id: Math.random().toString(36).substr(2, 9),
-      symbol,
-      amount,
-      price: basePriceUSD, // Store price in USD
-      currency: 'USD', // Indicate that the stored price is in USD
-    };
-
-    setStocks(prev => [...prev, newStock]);
+      if (data) {
+        const mappedStocks: Stock[] = data.map((item: any) => ({
+          id: item.id,
+          symbol: item.symbol,
+          amount: Number(item.amount),
+          price: MOCK_PRICES[item.symbol] || (Math.random() * 200 + 50),
+          currency: 'USD',
+        }));
+        setStocks(mappedStocks);
+      }
+    } catch (error) {
+      console.error('Error fetching portfolio:', error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const handleRemoveStock = (id: string) => {
-    setStocks(prev => prev.filter(s => s.id !== id));
+  const handleAddStock = async (symbol: string, amount: number) => {
+    try {
+      const { data, error } = await supabase
+        .from('portfolio_items')
+        .insert([{ symbol, amount }])
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      if (data) {
+        const basePriceUSD = MOCK_PRICES[symbol] || (Math.random() * 200 + 50);
+        const newStock: Stock = {
+          id: data.id,
+          symbol: data.symbol,
+          amount: Number(data.amount),
+          price: basePriceUSD,
+          currency: 'USD',
+        };
+        setStocks(prev => [...prev, newStock]);
+      }
+    } catch (error) {
+      console.error('Error adding stock:', error);
+    }
+  };
+
+  const handleRemoveStock = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('portfolio_items')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+
+      setStocks(prev => prev.filter(s => s.id !== id));
+    } catch (error) {
+      console.error('Error removing stock:', error);
+    }
   };
 
   const handleCurrencyChange = (newCurrency: Currency) => {
     setCurrency(newCurrency);
   };
 
-
   const portfolioData = useMemo(() => {
-    // Calculate items first
     const items: PortfolioItem[] = stocks.map((stock, index) => {
-      // stock.price is stored in USD
       const currentPrice = stock.price * EXCHANGE_RATES[currency];
       const value = currentPrice * stock.amount;
 
@@ -87,7 +142,7 @@ function App() {
         price: currentPrice,
         value,
         color: CHART_COLORS[index % CHART_COLORS.length] || stringToColor(stock.symbol),
-        currency // Update currency to selected
+        currency
       };
     });
 
@@ -96,13 +151,17 @@ function App() {
     return items.map(item => ({
       ...item,
       percent: total > 0 ? item.value / total : 0
-    })).sort((a, b) => b.value - a.value); // Sort by value desc
+    })).sort((a, b) => b.value - a.value);
   }, [stocks, currency]);
+
+  if (isLoading) {
+    return <div className="p-8 text-center">Loading portfolio...</div>;
+  }
 
   return (
     <div className="min-h-screen bg-slate-50 p-4 md:p-8 font-sans text-slate-900">
       <div className="max-w-6xl mx-auto space-y-8">
-
+        
         {/* Header */}
         <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
           <div>
@@ -111,21 +170,28 @@ function App() {
             </h1>
             <p className="text-slate-500 mt-1">Track your asset allocation in real-time</p>
           </div>
-          <CurrencySwitcher
-            currentCurrency={currency}
-            onCurrencyChange={handleCurrencyChange}
-          />
+          <div className="flex items-center gap-4">
+            <CurrencySwitcher 
+              currentCurrency={currency} 
+              onCurrencyChange={handleCurrencyChange} 
+            />
+            <button 
+              onClick={() => supabase.auth.signOut()}
+              className="text-sm text-slate-500 hover:text-slate-700 font-medium"
+            >
+              Sign Out
+            </button>
+          </div>
         </header>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-
+          
           {/* Left Column: Chart */}
           <PieChart portfolioData={portfolioData} currency={currency} />
-        
 
           {/* Right Column: Input & Summary */}
           <div className="lg:col-span-5 space-y-8">
-
+            
             {/* Add Stock */}
             <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
               <h2 className="text-lg font-semibold text-slate-800 mb-4">Add Holding</h2>
@@ -147,5 +213,3 @@ function App() {
     </div>
   );
 }
-
-export default App;

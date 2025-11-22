@@ -36,7 +36,7 @@ export function AIInsights({ items, currency, className }: AIInsightsProps) {
 
     try {
       const genAI = new GoogleGenerativeAI(keyToUse);
-      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+      const model = genAI.getGenerativeModel({ model: "gemini-2.5-pro" });
 
       const totalValue = items.reduce((sum, item) => sum + item.value, 0);
       const portfolioSummary = items.map(item => 
